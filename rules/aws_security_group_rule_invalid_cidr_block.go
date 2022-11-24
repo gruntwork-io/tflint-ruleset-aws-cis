@@ -43,14 +43,15 @@ func (r *AwsSecurityGroupRuleInvalidCidrBlockRule) Link() string {
 
 // Check checks whether ...
 func (r *AwsSecurityGroupRuleInvalidCidrBlockRule) Check(runner tflint.Runner) error {
-	// This rule is an example to get a top-level resource attribute.
 	resources, err := runner.GetResourceContent("aws_security_group_rule", &hclext.BodySchema{
 		Attributes: []hclext.AttributeSchema{
-			{Name: "cidr_blocks"},
-			{Name: "ipv6_cidr_blocks"},
+			// Required attributes
 			{Name: "from_port"},
 			{Name: "to_port"},
 			{Name: "type"},
+			// Optional attributes
+			{Name: "cidr_blocks"},
+			{Name: "ipv6_cidr_blocks"},
 		},
 	}, nil)
 	if err != nil {
@@ -62,6 +63,7 @@ func (r *AwsSecurityGroupRuleInvalidCidrBlockRule) Check(runner tflint.Runner) e
 
 	for _, resource := range resources.Blocks {
 		typeAttribute, exists := resource.Body.Attributes["type"]
+		// well this cant not exist
 		if !exists {
 			continue
 		}
@@ -75,22 +77,19 @@ func (r *AwsSecurityGroupRuleInvalidCidrBlockRule) Check(runner tflint.Runner) e
 			continue
 		}
 
+		//  A Port value of ALL
 		fromPortAttribute, exists := resource.Body.Attributes["from_port"]
 		if !exists {
 			continue
 		}
 
+		var fromPort int
+		err = runner.EvaluateExpr(fromPortAttribute.Expr, &fromPort, nil)
+
 		toPortAttribute, exists := resource.Body.Attributes["to_port"]
 		if !exists {
 			continue
 		}
-
-		// TODO what means that each field doesnt exist?
-		// Case 1:
-		// From 0, to 0.
-
-		var fromPort int
-		err = runner.EvaluateExpr(fromPortAttribute.Expr, &fromPort, nil)
 
 		var toPort int
 		err = runner.EvaluateExpr(toPortAttribute.Expr, &toPort, nil)
@@ -102,39 +101,32 @@ func (r *AwsSecurityGroupRuleInvalidCidrBlockRule) Check(runner tflint.Runner) e
 			continue
 		}
 
+		cidrBlocksAttribute, exists := resource.Body.Attributes["cidr_blocks"]
+		if exists {
+			var cidrBlocks []string
+			err = runner.EvaluateExpr(cidrBlocksAttribute.Expr, &cidrBlocks, nil)
+			if doesIpv4CidrBlocksAllowAll(cidrBlocks) {
+				return runner.EmitIssue(
+					r,
+					"cidr_blocks can not contain '0.0.0.0/0' when allowing 'ingress' access to ports 22 and/or 3389",
+					cidrBlocksAttribute.Expr.Range(),
+				)
+			}
+
+		}
+
 		ipv6CidrBlocksAttribute, exists := resource.Body.Attributes["ipv6_cidr_blocks"]
 		if exists {
 			var ipv6CidrBlocks []string
 			err = runner.EvaluateExpr(ipv6CidrBlocksAttribute.Expr, &ipv6CidrBlocks, nil)
-
-			//err = runner.EnsureNoError(err, func() error {
-			if doesCidrBlocksContainAll(ipv6CidrBlocks) {
+			if doesIpv6CidrBlocksAllowAll(ipv6CidrBlocks) {
 				return runner.EmitIssue(
 					r,
-					fmt.Sprintf("cidr_blocks are %v", ipv6CidrBlocks),
+					"ipv6_cidr_blocks can not contain '::/0' when allowing 'ingress' access to ports 22 and/or 3389",
 					ipv6CidrBlocksAttribute.Expr.Range(),
 				)
-			} //)
-
-		}
-
-		cidrBlocksAttribute, exists := resource.Body.Attributes["ipv6_cidr_blocks"]
-		if exists {
-			var cidrBlocks []string
-			err = runner.EvaluateExpr(cidrBlocksAttribute.Expr, &cidrBlocks, nil)
-
-			//err = runner.EnsureNoError(err, func() error {
-			if doesCidrBlocksContainAll(cidrBlocks) {
-
-				return runner.EmitIssue(
-					r,
-					fmt.Sprintf("cidr_blocks are %v", cidrBlocks),
-					cidrBlocksAttribute.Expr.Range(),
-				)
 			}
-			//})
 		}
-
 		if err != nil {
 			return err
 		}
@@ -144,6 +136,7 @@ func (r *AwsSecurityGroupRuleInvalidCidrBlockRule) Check(runner tflint.Runner) e
 }
 
 func doesPortRangeContainsRemoteAccess(fromPort int, toPort int) bool {
+	// TODO add case for 0, 0
 	remoteAccessPorts := []int{22, 3389}
 
 	for _, port := range remoteAccessPorts {
@@ -157,7 +150,20 @@ func doesPortRangeContainsRemoteAccess(fromPort int, toPort int) bool {
 	return false
 }
 
-func doesCidrBlocksContainAll(cidrBlocks []string) bool {
-	return true
+func doesIpv4CidrBlocksAllowAll(cidrBlocks []string) bool {
+	for _, cidrBlock := range cidrBlocks {
+		if cidrBlock == "0.0.0.0/0" {
+			return true
+		}
+	}
+	return false
+}
 
+func doesIpv6CidrBlocksAllowAll(ipv6CidrBlocks []string) bool {
+	for _, cidrBlock := range ipv6CidrBlocks {
+		if cidrBlock == "::/0" {
+			return true
+		}
+	}
+	return false
 }
