@@ -14,7 +14,7 @@ func Test_AwsSecurityGroupRuleInvalidCidrBlock(t *testing.T) {
 		Expected helper.Issues
 	}{
 		{
-			Name: "Find issues 0.0.0.0/0 allows ingress access through 22",
+			Name: "Find issues when 0.0.0.0/0 allows ingress access through 22",
 			Content: `
 resource "aws_security_group_rule" "rule" {
   from_port         = 10
@@ -26,11 +26,33 @@ resource "aws_security_group_rule" "rule" {
 			Expected: helper.Issues{
 				{
 					Rule:    NewAwsSecurityGroupRuleInvalidCidrBlockRule(),
-					Message: "cidr_blocks can not contain '0.0.0.0/0' when allowing 'ingress' access to ports 22 and/or 3389",
+					Message: "cidr_blocks can not contain '0.0.0.0/0' when allowing 'ingress' access to ports [22 3389]",
 					Range: hcl.Range{
 						Filename: "resource.tf",
 						Start:    hcl.Pos{Line: 7, Column: 23},
 						End:      hcl.Pos{Line: 7, Column: 51},
+					},
+				},
+			},
+		},
+		{
+			Name: "Find issues when ::/0 allows ingress access through 22",
+			Content: `
+resource "aws_security_group_rule" "rule" {
+  from_port         = 10
+  to_port           = 300
+  protocol          = "tcp"
+  type              = "ingress"
+  ipv6_cidr_blocks  = ["::/0"]
+}`,
+			Expected: helper.Issues{
+				{
+					Rule:    NewAwsSecurityGroupRuleInvalidCidrBlockRule(),
+					Message: "ipv6_cidr_blocks can not contain '::/0' when allowing 'ingress' access to ports [22 3389]",
+					Range: hcl.Range{
+						Filename: "resource.tf",
+						Start:    hcl.Pos{Line: 7, Column: 23},
+						End:      hcl.Pos{Line: 7, Column: 31},
 					},
 				},
 			},
@@ -43,7 +65,7 @@ resource "aws_security_group_rule" "rule" {
   to_port           = 80
   protocol          = "tcp"
   type              = "ingress"
-  cidr_blocks       = ["0.0.0.0/0", "10.0.0.0/16"]
+  cidr_blocks       = ["0.0.0.0/0"]
 }`,
 			Expected: helper.Issues{},
 		},

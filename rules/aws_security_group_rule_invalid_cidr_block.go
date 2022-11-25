@@ -12,13 +12,20 @@ import (
 type AwsSecurityGroupRuleInvalidCidrBlockRule struct {
 	tflint.DefaultRule
 
-	resourceType string
-	cidrBlocks   []string
+	resourceType      string
+	cidrBlocks        []string
+	remoteAccessPorts []int
 }
 
 // NewAwsSecurityGroupRuleInvalidCidrBlockRule returns a new rule
 func NewAwsSecurityGroupRuleInvalidCidrBlockRule() *AwsSecurityGroupRuleInvalidCidrBlockRule {
-	return &AwsSecurityGroupRuleInvalidCidrBlockRule{}
+	return &AwsSecurityGroupRuleInvalidCidrBlockRule{
+		resourceType:      "aws_security_group_rule",
+		remoteAccessPorts: []int{22, 3389},
+
+		// todo extrair os resource types daqui?
+
+	}
 }
 
 // Name returns the rule name
@@ -43,7 +50,7 @@ func (r *AwsSecurityGroupRuleInvalidCidrBlockRule) Link() string {
 
 // Check checks whether ...
 func (r *AwsSecurityGroupRuleInvalidCidrBlockRule) Check(runner tflint.Runner) error {
-	resources, err := runner.GetResourceContent("aws_security_group_rule", &hclext.BodySchema{
+	resources, err := runner.GetResourceContent(r.resourceType, &hclext.BodySchema{
 		Attributes: []hclext.AttributeSchema{
 			// Required attributes
 			{Name: "from_port"},
@@ -97,35 +104,38 @@ func (r *AwsSecurityGroupRuleInvalidCidrBlockRule) Check(runner tflint.Runner) e
 		logger.Debug(fmt.Sprintf("Security Group Rule port range is %d to %d", fromPort, toPort))
 
 		// No need to check the CIDR blocks if the ports range does not contain 22 or 3389.
-		if !doesPortRangeContainsRemoteAccess(fromPort, toPort) {
+		if !doesPortRangeContainsPorts(fromPort, toPort, r.remoteAccessPorts) {
 			continue
 		}
 
 		cidrBlocksAttribute, exists := resource.Body.Attributes["cidr_blocks"]
-		if exists {
-			var cidrBlocks []string
-			err = runner.EvaluateExpr(cidrBlocksAttribute.Expr, &cidrBlocks, nil)
-			if doesIpv4CidrBlocksAllowAll(cidrBlocks) {
-				return runner.EmitIssue(
-					r,
-					"cidr_blocks can not contain '0.0.0.0/0' when allowing 'ingress' access to ports 22 and/or 3389",
-					cidrBlocksAttribute.Expr.Range(),
-				)
-			}
+		if !exists {
+			continue
+		}
 
+		var cidrBlocks []string
+		err = runner.EvaluateExpr(cidrBlocksAttribute.Expr, &cidrBlocks, nil)
+		if doesIpv4CidrBlocksAllowAll(cidrBlocks) {
+			return runner.EmitIssue(
+				r,
+				fmt.Sprintf("cidr_blocks can not contain '0.0.0.0/0' when allowing 'ingress' access to ports %v", r.remoteAccessPorts),
+				cidrBlocksAttribute.Expr.Range(),
+			)
 		}
 
 		ipv6CidrBlocksAttribute, exists := resource.Body.Attributes["ipv6_cidr_blocks"]
-		if exists {
-			var ipv6CidrBlocks []string
-			err = runner.EvaluateExpr(ipv6CidrBlocksAttribute.Expr, &ipv6CidrBlocks, nil)
-			if doesIpv6CidrBlocksAllowAll(ipv6CidrBlocks) {
-				return runner.EmitIssue(
-					r,
-					"ipv6_cidr_blocks can not contain '::/0' when allowing 'ingress' access to ports 22 and/or 3389",
-					ipv6CidrBlocksAttribute.Expr.Range(),
-				)
-			}
+		if !exists {
+			continue
+		}
+
+		var ipv6CidrBlocks []string
+		err = runner.EvaluateExpr(ipv6CidrBlocksAttribute.Expr, &ipv6CidrBlocks, nil)
+		if doesIpv6CidrBlocksAllowAll(ipv6CidrBlocks) {
+			return runner.EmitIssue(
+				r,
+				fmt.Sprintf("ipv6_cidr_blocks can not contain '::/0' when allowing 'ingress' access to ports %v", r.remoteAccessPorts),
+				ipv6CidrBlocksAttribute.Expr.Range(),
+			)
 		}
 		if err != nil {
 			return err
@@ -135,11 +145,8 @@ func (r *AwsSecurityGroupRuleInvalidCidrBlockRule) Check(runner tflint.Runner) e
 	return nil
 }
 
-func doesPortRangeContainsRemoteAccess(fromPort int, toPort int) bool {
-	// TODO add case for 0, 0
-	remoteAccessPorts := []int{22, 3389}
-
-	for _, port := range remoteAccessPorts {
+func doesPortRangeContainsPorts(fromPort int, toPort int, ports []int) bool {
+	for _, port := range ports {
 		isIncludedInRange := fromPort <= port && port <= toPort
 		logger.Debug(fmt.Sprintf("%v for %d isIncludedInRange", isIncludedInRange, port))
 		if isIncludedInRange {
