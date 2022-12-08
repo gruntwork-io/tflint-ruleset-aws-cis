@@ -22,9 +22,6 @@ func NewAwsSecurityGroupRuleInvalidCidrBlockRule() *AwsSecurityGroupRuleInvalidC
 	return &AwsSecurityGroupRuleInvalidCidrBlockRule{
 		resourceType:      "aws_security_group_rule",
 		remoteAccessPorts: []int{22, 3389},
-
-		// todo extrair os resource types daqui?
-
 	}
 }
 
@@ -70,10 +67,6 @@ func (r *AwsSecurityGroupRuleInvalidCidrBlockRule) Check(runner tflint.Runner) e
 
 	for _, resource := range resources.Blocks {
 		typeAttribute, exists := resource.Body.Attributes["type"]
-		// well this cant not exist
-		if !exists {
-			continue
-		}
 
 		var sgType string
 		err := runner.EvaluateExpr(typeAttribute.Expr, &sgType, nil)
@@ -109,18 +102,16 @@ func (r *AwsSecurityGroupRuleInvalidCidrBlockRule) Check(runner tflint.Runner) e
 		}
 
 		cidrBlocksAttribute, exists := resource.Body.Attributes["cidr_blocks"]
-		if !exists {
-			continue
-		}
-
-		var cidrBlocks []string
-		err = runner.EvaluateExpr(cidrBlocksAttribute.Expr, &cidrBlocks, nil)
-		if doesIpv4CidrBlocksAllowAll(cidrBlocks) {
-			return runner.EmitIssue(
-				r,
-				fmt.Sprintf("cidr_blocks can not contain '0.0.0.0/0' when allowing 'ingress' access to ports %v", r.remoteAccessPorts),
-				cidrBlocksAttribute.Expr.Range(),
-			)
+		if exists {
+			var cidrBlocks []string
+			err = runner.EvaluateExpr(cidrBlocksAttribute.Expr, &cidrBlocks, nil)
+			if containsIpv4CidrBlocksAllowAll(cidrBlocks) {
+				return runner.EmitIssue(
+					r,
+					fmt.Sprintf("cidr_blocks can not contain '0.0.0.0/0' when allowing 'ingress' access to ports %v", r.remoteAccessPorts),
+					cidrBlocksAttribute.Expr.Range(),
+				)
+			}
 		}
 
 		ipv6CidrBlocksAttribute, exists := resource.Body.Attributes["ipv6_cidr_blocks"]
@@ -130,7 +121,7 @@ func (r *AwsSecurityGroupRuleInvalidCidrBlockRule) Check(runner tflint.Runner) e
 
 		var ipv6CidrBlocks []string
 		err = runner.EvaluateExpr(ipv6CidrBlocksAttribute.Expr, &ipv6CidrBlocks, nil)
-		if doesIpv6CidrBlocksAllowAll(ipv6CidrBlocks) {
+		if containsIpv6CidrBlocksAllowAll(ipv6CidrBlocks) {
 			return runner.EmitIssue(
 				r,
 				fmt.Sprintf("ipv6_cidr_blocks can not contain '::/0' when allowing 'ingress' access to ports %v", r.remoteAccessPorts),
@@ -157,7 +148,7 @@ func doesPortRangeContainsPorts(fromPort int, toPort int, ports []int) bool {
 	return false
 }
 
-func doesIpv4CidrBlocksAllowAll(cidrBlocks []string) bool {
+func containsIpv4CidrBlocksAllowAll(cidrBlocks []string) bool {
 	for _, cidrBlock := range cidrBlocks {
 		if cidrBlock == "0.0.0.0/0" {
 			return true
@@ -166,7 +157,7 @@ func doesIpv4CidrBlocksAllowAll(cidrBlocks []string) bool {
 	return false
 }
 
-func doesIpv6CidrBlocksAllowAll(ipv6CidrBlocks []string) bool {
+func containsIpv6CidrBlocksAllowAll(ipv6CidrBlocks []string) bool {
 	for _, cidrBlock := range ipv6CidrBlocks {
 		if cidrBlock == "::/0" {
 			return true
