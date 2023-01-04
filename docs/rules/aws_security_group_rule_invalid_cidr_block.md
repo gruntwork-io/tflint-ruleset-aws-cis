@@ -23,7 +23,7 @@ Error: cidr_blocks can not contain '0.0.0.0/0' when allowing 'ingress' access to
 
 ## Why
 
-CIS AWS Benckmark has two recommendations regarding Security Group's CIDR blocks:
+CIS AWS Foundations Benchmark has two recommendations regarding Security Group's CIDR blocks:
 - 5.2 ensures no security groups allow ingress from 0.0.0.0/0 to remote server administration ports
 - 5.3 ensures no security groups allow ingress from ::/0 to remote server administration ports
 

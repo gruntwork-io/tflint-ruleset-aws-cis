@@ -1,9 +1,11 @@
-# TFLint Ruleset AWS CIS
+# TFLint Ruleset CIS AWS Foundations Benchmark
 
-![CIS Benchmark Version](https://img.shields.io/badge/CIS%20benchmark%20version-1.5.0-green)
+![CIS AWS Foundations Benchmark Version](https://img.shields.io/badge/CIS%20benchmark%20version-1.5.0-green)
 ![https://gruntwork.io/?ref=repo_cis_compliance_aws"](https://img.shields.io/badge/maintained%20by-gruntwork.io-%235849a6.svg)
 
-Tflint rules for CIS compliance checks. These rules work in addition to the recommendations from [Gruntwork's CIS Service Catalog](https://github.com/gruntwork-io/terraform-aws-cis-service-catalog).
+Tflint rules for CIS AWS Foundations Benchmark compliance checks. These rules work in addition to the recommendations from [Gruntwork's CIS Service Catalog](https://github.com/gruntwork-io/terraform-aws-cis-service-catalog).
+
+> :warning: **This repository is a WIP. It only contains one single rule so far, to validate Security Groups, that is hard to enforce in any other way ([see Rules section](#rules)). In the future, we may add other CIS AWS Foundations Benchmark rules.**
 
 
 ## Requirements
@@ -19,7 +21,7 @@ You can install the plugin with `tflint --init`. Declare a config in `.tflint.hc
 plugin "aws-cis" {
   enabled = true
 
-  version = "0.0.1"
+  version = "<VERSION>"
   source  = "github.com/gruntwork-io/tflint-ruleset-aws-cis"
 }
 ```
@@ -32,7 +34,7 @@ plugin "aws-cis" {
 
 ## Terragrunt
 
-It's recommended that these rules are added into your Terragrunt project, using [Before Hooks or After Hooks](https://terragrunt.gruntwork.io/docs/features/hooks/#tflint-hook).
+An effective way to enforce these rules is to add them to your Terragrunt configuration using [Before Hooks](https://terragrunt.gruntwork.io/docs/features/hooks/#tflint-hook).
 
 ```hcl
 terraform {
@@ -43,12 +45,12 @@ terraform {
 }
 ```
 
-In the root of the Terragrunt project, add a `.tflint.hcl` file:
+In the root of the Terragrunt project, add a `.tflint.hcl` file, replacing `<VERSION>` below with the latest version from the [releases page](https://github.com/gruntwork-io/tflint-ruleset-aws-cis/releases):
 
 ```hcl
 plugin "aws" {
     enabled = true
-    version = "0.0.1"
+    version = "<VERSION>"
     source  = "github.com/gruntwork-io/tflint-ruleset-aws-cis"
 }
 ```
