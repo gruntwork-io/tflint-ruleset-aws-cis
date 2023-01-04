@@ -1,7 +1,10 @@
-# TFLint Ruleset Template
-[![Build Status](https://github.com/terraform-linters/tflint-ruleset-template/workflows/build/badge.svg?branch=main)](https://github.com/terraform-linters/tflint-ruleset-template/actions)
+# TFLint Ruleset AWS CIS
 
-This is a template repository for building a custom ruleset. You can create a plugin repository from "Use this template". See also [Writing Plugins](https://github.com/terraform-linters/tflint/blob/master/docs/developer-guide/plugins.md).
+![CIS Benchmark Version](https://img.shields.io/badge/CIS%20benchmark%20version-1.5.0-green)
+![https://gruntwork.io/?ref=repo_cis_compliance_aws"](https://img.shields.io/badge/maintained%20by-gruntwork.io-%235849a6.svg)
+
+Tflint rules for CIS compliance checks. These rules work in addition to the recommendations from [Gruntwork's CIS Service Catalog](https://github.com/gruntwork-io/terraform-aws-cis-service-catalog).
+
 
 ## Requirements
 
@@ -10,37 +13,50 @@ This is a template repository for building a custom ruleset. You can create a pl
 
 ## Installation
 
-TODO: This template repository does not contain release binaries, so this installation will not work. Please rewrite for your repository. See the "Building the plugin" section to get this template ruleset working.
-
 You can install the plugin with `tflint --init`. Declare a config in `.tflint.hcl` as follows:
 
 ```hcl
-plugin "template" {
+plugin "aws-cis" {
   enabled = true
 
-  version = "0.1.0"
-  source  = "github.com/terraform-linters/tflint-ruleset-template"
-
-  signing_key = <<-KEY
-  -----BEGIN PGP PUBLIC KEY BLOCK-----
-  mQINBGCqS2YBEADJ7gHktSV5NgUe08hD/uWWPwY07d5WZ1+F9I9SoiK/mtcNGz4P
-  JLrYAIUTMBvrxk3I+kuwhp7MCk7CD/tRVkPRIklONgtKsp8jCke7FB3PuFlP/ptL
-  SlbaXx53FCZSOzCJo9puZajVWydoGfnZi5apddd11Zw1FuJma3YElHZ1A1D2YvrF
-  ...
-  KEY
+  version = "0.0.1"
+  source  = "github.com/gruntwork-io/tflint-ruleset-aws-cis"
 }
 ```
 
 ## Rules
 
-|Name|Description|Severity|Enabled|Link|
-| --- | --- | --- | --- | --- |
-|aws_instance_example_type|Example rule for accessing and evaluating top-level attributes|ERROR|✔||
-|aws_s3_bucket_example_lifecycle_rule|Example rule for accessing top-level/nested blocks and attributes under the blocks|ERROR|✔||
-|google_compute_ssl_policy|Example rule with a custom rule config|WARNING|✔||
-|terraform_backend_type|Example rule for accessing other than resources|ERROR|✔||
+| Name                                       | Description                                                                        |Severity|Enabled| CIS Recommendation |
+|--------------------------------------------|------------------------------------------------------------------------------------| --- | --- |--------------------|
+| aws_security_group_rule_invalid_cidr_block | Ensure that SG rules do not allow public access to remote administration ports     |ERROR|✔| 5.2 and 5.3        |
 
-## Building the plugin
+## Terragrunt
+
+It's recommended that these rules are added into your Terragrunt project, using [Before Hooks or After Hooks](https://terragrunt.gruntwork.io/docs/features/hooks/#tflint-hook).
+
+```hcl
+terraform {
+  before_hook "before_hook" {
+    commands     = ["apply", "plan"]
+    execute      = ["tflint"]
+  }
+}
+```
+
+In the root of the Terragrunt project, add a `.tflint.hcl` file:
+
+```
+plugin "aws" {
+    enabled = true
+    version = "0.0.1"
+    source  = "github.com/gruntwork-io/tflint-ruleset-aws-cis"
+}
+```
+
+
+## >?
+
+### Building the plugin
 
 Clone the repository locally and run the following command:
 
@@ -58,9 +74,24 @@ You can run the built plugin like the following:
 
 ```
 $ cat << EOS > .tflint.hcl
-plugin "template" {
+plugin "aws-cis" {
   enabled = true
 }
 EOS
 $ tflint
+```
+
+### Manual release
+
+In order to release the binaries, this project uses [goreleaser](https://goreleaser.com/) ([install instructions](https://goreleaser.com/install/)).
+
+Export the variable `GPG_FINGERPRINT` in order to sign the release, and `GITHUB_TOKEN` so the binaries can be uploaded to GitHub. The release should run locally from the tag that will have the release.
+
+```
+git checkout <TAG FOR THE RELEASE, e.g. v0.40.0>
+
+export GPG_FINGERPRINT=<FINGERPRINT_ID>
+export GITHUB_TOKEN=<TOKEN>
+
+goreleaser release
 ```
