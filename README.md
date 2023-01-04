@@ -45,7 +45,7 @@ terraform {
 
 In the root of the Terragrunt project, add a `.tflint.hcl` file:
 
-```
+```hcl
 plugin "aws" {
     enabled = true
     version = "0.0.1"
@@ -54,7 +54,7 @@ plugin "aws" {
 ```
 
 
-## >?
+## Running locally
 
 ### Building the plugin
 
@@ -72,7 +72,7 @@ $ make install
 
 You can run the built plugin like the following:
 
-```
+```bash
 $ cat << EOS > .tflint.hcl
 plugin "aws-cis" {
   enabled = true
