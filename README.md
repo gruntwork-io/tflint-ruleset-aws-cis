@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-# tflint-ruleset-aws-cis
-Tflint rules for CIS AWS Foundations Benchmark compliance checks. These rules work in addition to the recommendations from Gruntwork's CIS Service Catalog.
-=======
 # TFLint Ruleset Template
 [![Build Status](https://github.com/terraform-linters/tflint-ruleset-template/workflows/build/badge.svg?branch=main)](https://github.com/terraform-linters/tflint-ruleset-template/actions)
 
@@ -68,4 +64,3 @@ plugin "template" {
 EOS
 $ tflint
 ```
->>>>>>> b25803a (Initial commit)
