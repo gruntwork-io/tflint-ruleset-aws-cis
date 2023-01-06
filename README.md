@@ -87,12 +87,11 @@ $ tflint
 
 In order to release the binaries, this project uses [goreleaser](https://goreleaser.com/) ([install instructions](https://goreleaser.com/install/)).
 
-Export the variable `GPG_FINGERPRINT` in order to sign the release, and `GITHUB_TOKEN` so the binaries can be uploaded to GitHub. The release should run locally from the tag that will have the release.
+Export the variable `GITHUB_TOKEN` so the binaries can be uploaded to GitHub. The release should run locally from the tag that will have the release.
 
 ```
 git checkout <TAG FOR THE RELEASE, e.g. v0.40.0>
 
-export GPG_FINGERPRINT=<FINGERPRINT_ID>
 export GITHUB_TOKEN=<TOKEN>
 
 goreleaser release
