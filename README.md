@@ -85,7 +85,7 @@ $ tflint
 
 ### Manual release
 
-In order to release the binaries, this project uses [goreleaser](https://goreleaser.com/) ([install instructions](https://goreleaser.com/install/)).
+This project doesn't have automated releases at the moment. In order to release the binaries, this project uses [goreleaser](https://goreleaser.com/) ([install instructions](https://goreleaser.com/install/)).
 
 Export the variable `GITHUB_TOKEN` so the binaries can be uploaded to GitHub. The release should run locally from the tag that will have the release.
 
