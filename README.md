@@ -85,7 +85,9 @@ $ tflint
 
 ### Manual release
 
-This project doesn't have automated releases at the moment. In order to release the binaries, this project uses [goreleaser](https://goreleaser.com/) ([install instructions](https://goreleaser.com/install/)).
+**NOTE:** This project doesn't have automated releases at the moment (due to limitations of our GitHub org with GitHub actions) and does not sign the binaries (as `tflint` doesn't currently check signatures for plugins). [See this Slack thread for more info](https://gruntwork-io.slack.com/archives/C046S2PDWP8/p1672915001156189).  
+
+In order to release the binaries, this project uses [goreleaser](https://goreleaser.com/) ([install instructions](https://goreleaser.com/install/)).
 
 Export the variable `GITHUB_TOKEN` so the binaries can be uploaded to GitHub. The release should run locally from the tag that will have the release.
 
